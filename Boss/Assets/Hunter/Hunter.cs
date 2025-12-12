@@ -1,8 +1,10 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class Hunter : MonoBehaviour
+public class Hunter : Entity
 {
+    const string MONSTER_TAG = "Monster";
+
     [Header("Components")]
     [SerializeField] private Rigidbody2D _rigidbody2D;
 
@@ -16,9 +18,15 @@ public class Hunter : MonoBehaviour
 
     [Header("Attack")]
     [SerializeField] private AnimationClip _attackAnimation;
+    [SerializeField] private int _attackDamage = 25;
+    [SerializeField] private float _attackRange = 1.5f;
 
     [Header("Animation")]
     [SerializeField] private Animator _animator;
+
+    public event System.Action<Hunter> OnHunterDeath;
+    public event System.Action<Hunter> OnHunterHit;
+    public event System.Action OnHitMonster;
 
     private void Awake()
     {
@@ -31,6 +39,9 @@ public class Hunter : MonoBehaviour
         {
             Debug.LogError("Animator component is missing on Hunter GameObject.", this);
         }
+
+        spawnPoint = transform.position;
+        spawnRotation = transform.eulerAngles.z;
     }
 
     private void FixedUpdate()
@@ -38,46 +49,50 @@ public class Hunter : MonoBehaviour
         _rigidbody2D.linearVelocity = _moveInput * _moveSpeed;
         _rigidbody2D.angularVelocity = _rotationInput * _rotationSpeed;
     }
-
-    public void OnMove(InputAction.CallbackContext context)
+    public void MoveDir(Vector2 dir)
     {
-        _moveInput = context.ReadValue<Vector2>();
+        _moveInput = dir;
     }
 
-    public void OnRotateLeft(InputAction.CallbackContext context)
+    public void RotateDir(float dir)
     {
-        if (context.performed)
-        {
-            _rotationInput = 1f;
-        }
-        else if (context.canceled)
-        {
-            _rotationInput = 0f; 
-        }
-    }
-
-    public void OnRotateRight(InputAction.CallbackContext context)
-    {
-        if (context.performed)
-        {
-            _rotationInput = -1f;
-        }
-        else if (context.canceled)
-        {
-            _rotationInput = 0f;
-        }
-    }
-
-    public void OnAttack(InputAction.CallbackContext context)
-    {
-        if (context.performed)
-        {
-            Attack();
-        }
+        _rotationInput = dir;
     }
 
     public void Attack()
     {
         _animator.Play(_attackAnimation.name);
+        RaycastHit2D[] raycastHit2Ds = Physics2D.RaycastAll(transform.position, transform.right, _attackRange);
+        foreach (var hit in raycastHit2Ds)
+        {
+            if (hit.collider.tag == MONSTER_TAG && hit.collider.attachedRigidbody != null && hit.collider.attachedRigidbody.TryGetComponent(out Monster monster))
+            {
+                monster.TakeDamage(_attackDamage);
+                OnHitMonster?.Invoke();
+            }
+        }
+    }
+
+    public override void OnDeath()
+    {
+        OnHunterDeath?.Invoke(this);
+        gameObject.SetActive(false);
+    }
+
+    public override void OnTakeDamage(int damage)
+    {
+        OnHunterHit?.Invoke(this);
+    }
+
+    public override void OnRespawn()
+    {
+        gameObject.SetActive(true);
+    }
+
+    private void OnDrawGizmos()
+    {
+        // Draw attack range
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(transform.position, transform.position + transform.right * _attackRange);
     }
 }

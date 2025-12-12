@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-public class Monster : MonoBehaviour
+public class Monster : Entity
 {
     [Header("Components")]
     [SerializeField] private Animator _animator;
@@ -16,12 +16,17 @@ public class Monster : MonoBehaviour
     [SerializeField] private AnimationClip _attackAnimation;
     [SerializeField] private float _attackRange = 1.5f;
     [SerializeField] private float _attackAngleTolerance = 3f; // Degrees
+    [SerializeField] private int _attackDamage = 20;
+    [SerializeField] private float _attackCooldown = 0.5f;
+    [SerializeField] private float _lastAttackTime = -Mathf.Infinity;
 
     [Header("Movement")]
     [SerializeField] private float _moveSpeed = 3f;
 
     [Header("Rotation")]
     [SerializeField] private float _rotationSpeed = 100f;
+
+    public event Action OnDeathAction;
 
     private void Awake()
     {
@@ -38,6 +43,9 @@ public class Monster : MonoBehaviour
         _detectionCollider = gameObject.AddComponent<CircleCollider2D>();
         _detectionCollider.isTrigger = true;
         _detectionCollider.radius = _detectionRange;
+
+        spawnPoint = transform.position;
+        spawnRotation = transform.eulerAngles.z;
     }
 
     private void Start()
@@ -47,7 +55,7 @@ public class Monster : MonoBehaviour
 
     private void Update()
     {
-        if (_targetHunter == null)
+        if (_targetHunter == null || !active)
         {
             Stop();
             return;
@@ -64,7 +72,10 @@ public class Monster : MonoBehaviour
             _rigidbody2D.MoveRotation(angle);
 
             // Attack
-            Attack();
+            if(Time.time - _lastAttackTime >= _attackCooldown)
+            {
+                Attack();
+            }
         }
         else
         {
@@ -94,6 +105,15 @@ public class Monster : MonoBehaviour
     private void Attack()
     {
         _animator.Play(_attackAnimation.name);
+        RaycastHit2D[] hits = Physics2D.RaycastAll(transform.position, transform.right, _attackRange);
+        foreach (var hit in hits)
+        {
+            if (hit.collider.attachedRigidbody != null && hit.collider.attachedRigidbody.TryGetComponent(out Hunter hunter))
+            {
+                hunter.TakeDamage(_attackDamage);
+            }
+        }
+        _lastAttackTime = Time.time;
     }
 
     private Hunter SearchHunter()
@@ -103,7 +123,7 @@ public class Monster : MonoBehaviour
         float closestDistanceSqr = Mathf.Infinity;
         foreach (var hit in hits)
         {
-            if (hit.attachedRigidbody.TryGetComponent(out Hunter hunter))
+            if (hit.attachedRigidbody != null && hit.attachedRigidbody.TryGetComponent(out Hunter hunter))
             {
                 float distanceSqr = (hunter.transform.position - transform.position).sqrMagnitude; // Using sqrMagnitude to avoid sqrt calculation
 
@@ -117,16 +137,50 @@ public class Monster : MonoBehaviour
         return closestHunter;
     }
 
+    public override void OnDeath()
+    {
+        OnDeathAction?.Invoke();
+        gameObject.SetActive(false);
+    }
+
+    public override void OnRespawn()
+    {
+        gameObject.SetActive(true);
+        _targetHunter = SearchHunter();
+    }
+
+    public void OnTargetDeath(Hunter target)
+    {
+        target.OnHunterDeath -= OnTargetDeath;
+        _targetHunter = SearchHunter();
+        if(_targetHunter != null)
+        {
+            _targetHunter.OnHunterDeath += OnTargetDeath;
+        }
+    }
+
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if(_targetHunter != null) return;
-        collision.attachedRigidbody.TryGetComponent(out _targetHunter);
+        if(_targetHunter != null || collision.attachedRigidbody == null) return;
+        if(collision.attachedRigidbody.TryGetComponent(out _targetHunter))
+        {
+            if(_targetHunter != null)
+            {
+                _targetHunter.OnHunterDeath += OnTargetDeath;
+            }
+        }
     }
 
     private void OnTriggerExit2D(Collider2D collision)
     {
-        if(collision.attachedRigidbody.TryGetComponent(out Hunter hunter) && hunter == _targetHunter)
+        if (collision.attachedRigidbody == null)
         {
+            return;
+        }
+
+        if (collision.attachedRigidbody.TryGetComponent(out Hunter hunter) && hunter == _targetHunter)
+        {
+            hunter.OnHunterDeath -= OnTargetDeath;
             _targetHunter = SearchHunter();
         }
     }
