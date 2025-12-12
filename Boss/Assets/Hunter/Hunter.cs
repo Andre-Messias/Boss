@@ -46,9 +46,12 @@ public class Hunter : Entity
 
     private void FixedUpdate()
     {
+        // Move and rotate the hunter based on input
         _rigidbody2D.linearVelocity = _moveInput * _moveSpeed;
         _rigidbody2D.angularVelocity = _rotationInput * _rotationSpeed;
     }
+
+    // Input methods
     public void MoveDir(Vector2 dir)
     {
         _moveInput = dir;
@@ -73,6 +76,7 @@ public class Hunter : Entity
         }
     }
 
+    // Entity events
     public override void OnDeath()
     {
         OnHunterDeath?.Invoke(this);
@@ -89,6 +93,7 @@ public class Hunter : Entity
         gameObject.SetActive(true);
     }
 
+    // Gizmos for debugging
     private void OnDrawGizmos()
     {
         // Draw attack range

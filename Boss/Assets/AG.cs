@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class AG : MonoBehaviour
 {
+    // Save logs for boss kills
     [Serializable]
     struct BossLog
     {
@@ -98,7 +99,8 @@ public class AG : MonoBehaviour
 
         }
 
-        if(bestGrade > _historyBestGrade)
+        // Save history best chromosomes
+        if (bestGrade > _historyBestGrade)
         {
             _historyBestGrade = bestGrade;
             _historyBestChomosomes[0] = new(_bestChomosomes[0]);

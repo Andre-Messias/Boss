@@ -15,7 +15,9 @@ public class Cage : MonoBehaviour
     private void Update()
     {
         if (finished) return;
+
         timer += Time.deltaTime;
+        // Time limit lose condition
         if (timer > cageDuration)
         {
             Finish();
@@ -42,6 +44,7 @@ public class Cage : MonoBehaviour
         Finish();
     }
 
+    // Called to finish the cage session
     public void Finish()
     {
         finished = true;
@@ -52,6 +55,7 @@ public class Cage : MonoBehaviour
         }
     }
 
+    // Called to reset the cage session
     public void ResetCage()
     {
         monster.active = true;
@@ -70,6 +74,7 @@ public class Cage : MonoBehaviour
         finished = false;
     }
 
+    // Calculate the final grade of the cage session
     public int GetGrade()
     {
         int grade = cageGrade;

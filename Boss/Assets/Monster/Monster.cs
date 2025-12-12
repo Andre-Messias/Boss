@@ -26,6 +26,7 @@ public class Monster : Entity
     [Header("Rotation")]
     [SerializeField] private float _rotationSpeed = 100f;
 
+    // Events
     public event Action OnDeathAction;
 
     private void Awake()
@@ -96,12 +97,14 @@ public class Monster : Entity
         }
     }
 
+    // Stop all movement
     private void Stop()
     {
         _rigidbody2D.linearVelocity = Vector2.zero;
         _rigidbody2D.angularVelocity = 0f;
     }
 
+    // Perform attack on the target Hunter
     private void Attack()
     {
         _animator.Play(_attackAnimation.name);
@@ -116,6 +119,7 @@ public class Monster : Entity
         _lastAttackTime = Time.time;
     }
 
+    // Search for the closest Hunter within detection range
     private Hunter SearchHunter()
     {
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, _detectionRange); // OverlapCircleNonAlloc can be used for optimization (require fixed hunter size)
@@ -137,6 +141,7 @@ public class Monster : Entity
         return closestHunter;
     }
 
+    // Override death and respawn methods
     public override void OnDeath()
     {
         OnDeathAction?.Invoke();
@@ -159,6 +164,7 @@ public class Monster : Entity
         }
     }
 
+    // Trigger events for detection collider
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if(_targetHunter != null || collision.attachedRigidbody == null) return;
@@ -185,6 +191,7 @@ public class Monster : Entity
         }
     }
 
+    // Gizmos for visualization in the editor
     private void OnDrawGizmos()
     {
         // Attack range

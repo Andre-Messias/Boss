@@ -4,6 +4,7 @@ using UnityEngine;
 public class HunterBrain : MonoBehaviour
 {
     #region Classes
+    // Gene for a single action
     [System.Serializable]
     public class Gene
     {
@@ -30,6 +31,7 @@ public class HunterBrain : MonoBehaviour
             attack = 0;
         }
 
+        // Crossover constructor
         public Gene(Gene father, Gene mother)
         {
             moveLeft = (father.moveLeft + mother.moveLeft) / 2;
@@ -43,6 +45,7 @@ public class HunterBrain : MonoBehaviour
             attack = (father.attack + mother.attack) / 2;
         }
 
+        // Copy constructor
         public Gene(Gene other)
         {
             moveLeft = other.moveLeft;
@@ -54,6 +57,7 @@ public class HunterBrain : MonoBehaviour
             attack = other.attack;
         }
 
+        // Get random float array for gene actions
         public static float[] GetRandom()
         {
             float[] random = new float[7];
@@ -65,9 +69,10 @@ public class HunterBrain : MonoBehaviour
             return random;
         }
 
+        // Generate a random gene
         public static Gene RandomGene()
         {
-            Gene gene = new Gene();
+            Gene gene = new();
             float[] random = GetRandom();
             gene.moveLeft = random[0];
             gene.moveRight = random[1];
@@ -82,6 +87,7 @@ public class HunterBrain : MonoBehaviour
         }
     }
 
+    // Chromosome consisting of multiple genes
     [System.Serializable]
     public class Chromosome
     {
@@ -98,6 +104,7 @@ public class HunterBrain : MonoBehaviour
             }
         }
 
+        // Crossover constructor
         public Chromosome(Chromosome father, Chromosome mother)
         {
             int geneCount = Mathf.Min(father.genes.Length, mother.genes.Length);
@@ -108,6 +115,7 @@ public class HunterBrain : MonoBehaviour
             }
         }
 
+        // Copy constructor
         public Chromosome(Chromosome other)
         {
             genes = new Gene[other.genes.Length];
@@ -118,6 +126,7 @@ public class HunterBrain : MonoBehaviour
             grade = other.grade;
         }
 
+        // Generate a random chromosome
         public static Chromosome RandomChromosome(int geneCount)
         {
             Chromosome chromosome = new Chromosome(geneCount);
@@ -128,6 +137,7 @@ public class HunterBrain : MonoBehaviour
             return chromosome;
         }
 
+        // Get the next gene in the chromosome
         public Gene GetNextGene()
         {
             Gene gene = genes[index];
@@ -135,6 +145,7 @@ public class HunterBrain : MonoBehaviour
             return gene;
         }
 
+        // Reset the chromosome index and grade
         public void Reset()
         {
             index = 0;
@@ -181,6 +192,7 @@ public class HunterBrain : MonoBehaviour
     private float _timeGrade = 0f;
     private void Update()
     {
+        // Inactive check
         if (!_hunter.isAlive || !_hunter.active) return;
 
         // Time grade
@@ -201,6 +213,7 @@ public class HunterBrain : MonoBehaviour
         }
     }
 
+    // Event handlers
     public void OnHitMonster()
     {
         chromosome.grade += 20;
@@ -211,6 +224,7 @@ public class HunterBrain : MonoBehaviour
         chromosome.grade -= 8;
     }
 
+    // Use a gene to control the hunter
     public void UseGene(Gene gene)
     {
         float[] chances = Gene.GetRandom();
